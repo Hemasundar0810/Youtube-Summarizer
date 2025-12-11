@@ -32,7 +32,8 @@ def extract_transcript_details(video_id):
     try:
         if video_id:
             transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[
-                "en", "hi", "bn", "ta", "te", "kn", "ml", "as", "or", "gu", "mr", "ne", "pa", "sd", "si","ab", "aa", "af", "ak", "sq", "am", "ar", "hy", "ay", "az", "ba", "eu", "be", "bho",
+            "en", "hi", "bn", "ta", "te", "kn", "ml", "as", "or", "gu", "mr", "ne", "pa", 
+            "sd", "si","ab", "aa", "af", "ak", "sq", "am", "ar", "hy", "ay", "az", "ba", "eu", "be", "bho",
             "bs", "br", "bg", "my", "ca", "ceb", "zh-Hans", "zh-Hant", "co", "hr", "cs", "da",
             "dv", "nl", "dz", "eo", "et", "ee", "fo", "fj", "fil", "fi", "fr", "gaa", "gl", "lg",
             "ka", "de", "el", "gn", "ht", "ha", "haw", "iw", "hmn", "hu", "is", "ig", "id",
@@ -50,45 +51,48 @@ def extract_transcript_details(video_id):
             transcript_text = ""
             for i in transcript:
                 transcript_text += " " + i["text"]
+            print(transcript_text)
             return transcript_text,duration
         else:
             st.error( "Video ID not found in the provided URL Pleas Provide Correct URL.")
     except Exception as e:
-        st.error(e)
+        st.error("transcript"+e)
 
 #for extracting summary from transcription using gemini api
 def generate_gemini_content(transcript_text,prompt):
     try:
-        model=genai.GenerativeModel("gemini-2.5-flash")
+        model=genai.GenerativeModel("gemini-2.5-flash-lite")
         response=model.generate_content(prompt+transcript_text)
         return response.text
     except Exception as e:
-        st.error(e)
+        st.error("gemini"+e)
 
 def calculate_summary_words(duration, summary_type):
     if summary_type == "Short Summary":
-        factor = 10
+        factor = 3
     elif summary_type == "Medium Summary":
-        factor = 20
+        factor = 6
     else:
-        factor = 30
+        factor = 12
     words=duration * factor
     if words < 50:  # minimum words
         words = 50
+    st.write(f"Generating a summary of approximately {words} words.")
     return int(words)
 
 #frontend interface using streamlit
-st.markdown("<h1 style='text-align: center; color: #FF6347;'> YouTube Video Notes Taker</h1>", unsafe_allow_html=True)
-st.markdown("<h5 style='text-align: center; color: white;'>This will work well only if the youtube video has a good transcription</h5>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: left; color: #FF6347;'> YouTube Video Summarizer</h1>", unsafe_allow_html=True)
+st.markdown("<h5 style='text-align: left; color: white;'>This will work well only if the youtube video has a good transcription</h5>", unsafe_allow_html=True)
 
 youtube_link = st.text_input("Paste or enter YouTube video link:")
 target_language=st.text_input("Enter you prefered language code(e.g. 'hi' for hindi, 'te' for telugu, 'es' for spanish, search in google if you don't know) ")
 summary_type = st.selectbox("Choose summary type:", ["Short Summary", "Medium Summary", "Long Summary"])
-st.image(f"http://img.youtube.com/vi/{video_id}/0.jpg", use_container_width=True)
+if youtube_link:
+    video_id = extract_video_id(youtube_link)
+    st.image(f"http://img.youtube.com/vi/{video_id}/0.jpg", width="stretch")
 
 if st.button("Get Detailed Notes"):
     if youtube_link:
-        video_id = extract_video_id(youtube_link)
         try:
             transcript_text,duration = extract_transcript_details(video_id)
             words=calculate_summary_words(duration, summary_type)
@@ -120,7 +124,7 @@ Here is the transcript:
                 st.write(summary)
         except Exception as e:
             st.error("An error occurred:")
-            st.error(str(e))
+            st.error("unknown"+str(e))
             st.error("Sorry, we couldn't retrieve the transcript for this video. It might not be available or there could be an issue with the connection.")
     else:
         st.error("Please enter a valid YouTube video link.")
